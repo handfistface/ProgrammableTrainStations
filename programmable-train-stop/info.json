@@ -1,0 +1,10 @@
+{
+  "name": "programmable-train-stop",
+  "version": "0.1.5",
+  "factorio_version": "2.0",
+  "title": "Programmable Train Stops",
+  "author": "John",
+  "description": "This mod allows you to program train stop names with a vanilla signal, effectively allowing multi item stations.",
+  "dependencies": ["base"],
+  "thumbnail": "thumbnail.png"
+}
