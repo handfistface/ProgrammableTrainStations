@@ -5,13 +5,14 @@
 -- Creation date: 04-12-2025
 
 -- TODO
--- 1. Prefer text station name & settings
--- 2. Test on different planets, probably need to separate stations for different surfaces
---      train_stop.surface.index
---      game.surfaces[1]
---      get_all_train_stops() add overload to get all train stops on a surface
---      then you need to only rename the train stops on the same surface, might need selective wiping when you restore train stops
---    * At this point I've created trainHelper.filter_train_stops_by_surface()
+-- * Prefer text station name & settings
+-- * Test blueprint functionality
+--    This is semi working, but the train stops are not being restored correctly the GUI does not populate the settings initially
+-- * Add ability to only use red/green signals
+-- * Shift right click does not copy the settings
+-- * Copy/paste probably doesn't copy the settings
+-- * Add storage for programmable stations & their last received signals, tie this into the on_tick() function to compare the last signal to the current signal and speed up update process
+-- * Document storage variables at the top of storageHelper to make it easier to find information on what is stored
 
 utility = require("src.utility")
 signalProcessing = require("src.signalProcessing")
@@ -23,88 +24,63 @@ scheduleHelper = require("src.scheduleHelper")
 function signal_to_no_signal(train_stop)
     -- Handle case where no signals were found & the station is set to programmable
     holdover_name = "No Signals"
-    if train_stop.backer_name ~= holdover_name then
-        
-        all_stations_with_name = trainHelper.get_train_stops_by_name(train_stop.backer_name)
-        if #all_stations_with_name > 1 then
-            utility.print_debug("Multiple stations with the same name found. Just doing rename without digging into attached trains")
-            train_stop.backer_name = holdover_name
-            return
-        end
-        
-        storageHelper.backup_trains_for_station(train_stop)
-        scheduleHelper.remove_station_from_schedule(train_stop, train_stop.backer_name)
-        train_stop.backer_name = holdover_name
-    end
-end
-
-function no_signal_to_signal(train_stop, new_station_name)
-    backups_for_station = storage.backup_train_schedule[new_station_name]
-    if not backups_for_station or #backups_for_station == 0 then
-        utility.print_debug("No backup found for train stop: " .. train_stop.backer_name)
+    if train_stop.backer_name == holdover_name then
         return
     end
 
-    for index, backup_of_train_and_record in ipairs(backups_for_station) do
-        local new_records = {}
-        for i, record in ipairs(backup_of_train_and_record.train.schedule.records) do
-            table.insert(new_records, record)
-        end
-        
-        has_record = storageHelper.does_backup_contain_train(backup_of_train_and_record.train, train_stop.backer_name)
-        if not has_record then
-            utility.print_debug("Restoring train stop: " .. train_stop.unit_number .. " " .. train_stop.backer_name .. "for train: " .. backup_of_train_and_record.train.id)
-            table.insert(new_records, backup_of_train_and_record.train.schedule.current, backup_of_train_and_record.record)
-        end
-
-        scheduleHelper.set_train_schedule(backup_of_train_and_record.train, new_records)
-        table.remove(storage.backup_train_schedule[new_station_name], index)
+    all_stations_with_name = trainHelper.get_train_stops(train_stop.backer_name, train_stop.surface_index)
+    for _, station in ipairs(all_stations_with_name) do
+        utility.print_debug("Signal to no signal - STATION " .. station.backer_name .. " on surface " .. game.surfaces[station.surface_index].name)
     end
+
+    if #all_stations_with_name > 1 then
+        utility.print_debug("Signal to no signal - Multiple stations with the same name found. " .. train_stop.backer_name .. " on surface " .. game.surfaces[train_stop.surface_index].name)
+        train_stop.backer_name = holdover_name
+        return
+    end
+    
+    utility.print_debug("Signal to no signal - Backing up trains & schedules for train stop: " .. train_stop.backer_name .. " on surface " .. game.surfaces[train_stop.surface_index].name)
+    storageHelper.backup_trains_for_station(train_stop)
+    scheduleHelper.remove_station_from_schedule(train_stop, train_stop.backer_name)
+    train_stop.backer_name = holdover_name
 end
 
 function signals_found_for_train_stop(signals, train_stop)
-
-    if #signals < 1 then
-        --This should be an impossible situation since we've processed before this function hits
-        utility.print_debug("No signals found for train stop: " .. train_stop.backer_name)
-        return
-    end
-
     local signal = signals[1]
     local new_station_name = signalProcessing.create_new_name_from_signal(signal, train_stop)
 
     if not signal or not signal.signal or not signal.signal.signal or not signal.signal.signal.name then
-        utility.print_debug("Invalid signal state: " .. train_stop.backer_name)
+        --invalid signal state
         return
     end
 
     if train_stop.backer_name == new_station_name then
         -- No need to change the name, it's already set correctly
-        -- utility.print_debug("Train stop name is already set to the signal name: " .. train_stop.backer_name)
         return
     end
     
-    local all_stations_with_name = trainHelper.get_train_stops_by_name(train_stop.backer_name)
+    local all_stations_with_name = trainHelper.get_train_stops(train_stop.backer_name, train_stop.surface_index)
     if #all_stations_with_name == 1 then
-        utility.print_debug("Only one station left with the name " .. train_stop.backer_name .. ", backing up trains & schedules")
+        utility.print_debug("Signals found - Only one station left with the name " .. train_stop.backer_name .. " on surface " .. game.surfaces[train_stop.surface_index].name .. ", backing up trains & schedules")
         storageHelper.backup_trains_for_station(train_stop)
         scheduleHelper.remove_station_from_schedule(train_stop, train_stop.backer_name)
     end
 
     -- Handle case where the station was previously set to "No Signals"
+    utility.print_debug("Signals found - Restoring trains & schedules for train stop: " .. train_stop.backer_name .. " on surface " .. game.surfaces[train_stop.surface_index].name)
     train_stop.backer_name = new_station_name
-    storageHelper.restore_stations_for_train_stop(new_station_name)
+    storageHelper.restore_stations_for_train_stop(new_station_name, train_stop.surface.index)
 end
 
 function on_tick()
-
-    -- wipe_backup_train_schedule()
+    -- utility.wipe_backup_train_schedule()
     local stops = trainHelper.get_all_train_stops()
 
     for _, train_stop in pairs(stops) do
         if train_stop and train_stop.valid then
             local signals = signalProcessing.get_signals_from_train_stop(train_stop)
             local isProgrammable = trainHelper.is_train_stop_programmable(train_stop)
+
             if signals and #signals > 0 and isProgrammable then
                 -- Handle case where signals were found & the station is set to programmable
                 signals_found_for_train_stop(signals, train_stop)

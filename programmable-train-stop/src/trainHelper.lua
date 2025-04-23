@@ -26,19 +26,16 @@ function trainHelper.is_train_stop_programmable(trainStop)
     return false
 end
 
-function trainHelper.get_train_stops_by_name(station_name)
-    local matching_stops = {} -- Table to store matching train stops
+function trainHelper.get_train_stops(stop_name, surface_index)
+    local matching_stops = {}
 
-    -- Iterate through all surfaces in the game
-    for _, surface in pairs(game.surfaces) do
-        -- Get all train stops on the surface
-        local train_stops = surface.find_entities_filtered { type = "train-stop" }
+    surface = game.surfaces[surface_index]
+    local train_stops = surface.find_entities_filtered { type = "train-stop" }
 
-        -- Check each train stop's backer_name
-        for _, train_stop in pairs(train_stops) do
-            if train_stop.backer_name == station_name then
-                table.insert(matching_stops, train_stop)
-            end
+    -- Check each train stop's backer_name
+    for _, train_stop in pairs(train_stops) do
+        if train_stop.backer_name == stop_name then
+            table.insert(matching_stops, train_stop)
         end
     end
 
@@ -64,14 +61,34 @@ function trainHelper.get_record_from_schedule_by_name(train, station_name_to_fin
     return nil
 end
 
-function trainHelper.filter_train_stops_by_surface(train_stop_array, surface_index)
-    local train_stops = {}
-    for _, train_stop in pairs(train_stop_array) do
-        if train_stop and train_stop.valid and train_stop.surface_index == surface_index then
-            table.insert(train_stops, train_stop)
+function trainHelper.get_surface_index_for_train(train)
+    if not train or not train.valid then
+        return 1
+    end
+
+    local rails = train.get_rails()
+    if not rails or #rails == 0 then
+        return 1
+    end
+
+    local surface_index = rails[1].surface_index
+    return surface_index
+end
+
+function trainHelper.get_train_stop_trains(train_stop, surface_index)
+    if not train_stop or not train_stop.valid then
+        return nil
+    end
+
+    local trains = {}
+    for _, train in pairs(train_stop.get_train_stop_trains()) do
+        local train_surface_index = trainHelper.get_surface_index_for_train(train)
+        if train_surface_index == surface_index then
+            table.insert(trains, train)
         end
     end
-    return train_stops
+
+    return trains
 end
 
 return trainHelper

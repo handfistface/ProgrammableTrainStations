@@ -14,7 +14,11 @@ function storageHelper.is_dropoff_set(train_stop)
 end
 
 function storageHelper.does_backup_contain_train_stop(train_stop)
-    return utility.does_table_contain_key(storage.backup_train_schedule, train_stop.backer_name)
+    backups = storage.backup_train_schedule[train_stop.backer_name]
+    if backups and #backups > 0 then
+        return true
+    end
+    return false
 end
 
 
@@ -42,35 +46,71 @@ function storageHelper.backup_trains_for_station(train_stop)
         return
     end
 
-    train_stop_exists_in_backup = storageHelper.does_backup_contain_train_stop(train_stop)
+    local train_stop_exists_in_backup = storageHelper.does_backup_contain_train_stop(train_stop)
     if not train_stop_exists_in_backup then
         storage.backup_train_schedule[train_stop.backer_name] = {}
     end
     
-    trains_at_station = train_stop.get_train_stop_trains()
+    local trains_at_station = trainHelper.get_train_stop_trains(train_stop, train_stop.surface_index)
+    if not trains_at_station or #trains_at_station == 0 then
+        utility.print_debug("backup_trains_for_station() - No trains found at station: " .. train_stop.backer_name)
+        return
+    end
 
     for _, train in pairs(trains_at_station) do
         if train and train.valid and train.schedule then
             if not storageHelper.does_backup_contain_train(train, train_stop.backer_name) then
                 -- The schedule does not exist in the backup, so add it
-                utility.print_debug("Adding backup schedule for train: " .. train.id .. " " .. train_stop.backer_name)
+                utility.print_debug("backup_trains_for_station() - Adding backup schedule for train: " .. train.id .. " " .. train_stop.backer_name)
                 record_to_backup = trainHelper.get_record_from_schedule_by_name(train, train_stop.backer_name)
                 table.insert(storage.backup_train_schedule[train_stop.backer_name],
                 {
                     train = train,
                     record = record_to_backup,
+                    surface_index = train_stop.surface_index
                 })
             end
         end
     end
 end
 
-function storageHelper.restore_stations_for_train_stop(train_stop_name_to_restore)
+function storageHelper.get_stations_for_surface(train_stop_name, surface_index)
+    local train_stop_backups = storage.backup_train_schedule[train_stop_name]
+    if not train_stop_backups or #train_stop_backups == 0 then
+        utility.print_debug("No backup found for train stop " .. train_stop_name .. " on surface index " .. surface_index)
+        return nil
+    end
+
+    local filtered_train_stops = {}
+    for _, train_stop_backup in pairs(train_stop_backups) do
+        if train_stop_backup.surface_index == surface_index then
+            table.insert(filtered_train_stops, train_stop_backup)
+        end
+    end
+    return filtered_train_stops
+end
+
+function storageHelper.remove_stations_for_surface(train_stop_name, surface_index)
+    local train_stop_backups = storage.backup_train_schedule[train_stop_name]
+    if not train_stop_backups or #train_stop_backups == 0 then
+        utility.print_debug("No backup found for train stop " .. train_stop_name .. " on surface index " .. surface_index)
+        return nil
+    end
+
+    for index, train_stop_backup in pairs(train_stop_backups) do
+        if train_stop_backup.surface_index == surface_index then
+            table.remove(train_stop_backups, index)
+            utility.print_debug("Removed backup for train stop " .. train_stop_name .. " on surface index " .. surface_index)
+        end
+    end
+end
+
+function storageHelper.restore_stations_for_train_stop(train_stop_name_to_restore, surface_index)
     if not train_stop_name_to_restore or train_stop_name_to_restore == "No Signals" then
         return
     end
 
-    local backups_for_station = storage.backup_train_schedule[train_stop_name_to_restore]
+    local backups_for_station = storageHelper.get_stations_for_surface(train_stop_name_to_restore, surface_index)
     if not backups_for_station or #backups_for_station == 0 then
         utility.print_debug("No backup found for train stop: " .. train_stop_name_to_restore)
         return
@@ -94,7 +134,7 @@ function storageHelper.restore_stations_for_train_stop(train_stop_name_to_restor
     end
 
     -- Remove the backup entries since they have been restored
-    storage.backup_train_schedule[train_stop_name_to_restore] = nil
+    storageHelper.remove_stations_for_surface(train_stop_name_to_restore, surface_index)
 end
 
 return storageHelper

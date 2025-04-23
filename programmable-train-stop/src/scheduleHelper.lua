@@ -21,7 +21,12 @@ function scheduleHelper.set_train_schedule(train, new_records)
 end
 
 function scheduleHelper.remove_station_from_schedule(train_stop, station_to_remove)
-    local train_stop_trains = train_stop.get_train_stop_trains()
+    local train_stop_trains = trainHelper.get_train_stop_trains(train_stop, train_stop.surface_index)
+    if not train_stop_trains or #train_stop_trains == 0 then
+        utility.print_debug("No trains found for the train stop " .. train_stop.backer_name)
+        return
+    end
+
     for _, train in ipairs(train_stop_trains) do
         local new_records = {}
         for i, record in ipairs(train.schedule.records) do
