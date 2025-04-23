@@ -1,7 +1,7 @@
 local utility = {}
 
 function utility.print_debug(message)
-    debug = true 
+    debug = false 
     if game and debug then
         game.print(message)
     end
