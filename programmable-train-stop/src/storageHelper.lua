@@ -6,7 +6,7 @@ function init_programmable_train_stops()
     for _, train_stop in pairs(stops) do
         if train_stop.valid and train_stop.unit_number and storage.train_stop_data then
             -- Initialize the storage for each train stop
-            if storage.train_stop_data[train_stop.unit_number].enableProgrammableName then
+            if storage.train_stop_data[train_stop.unit_number] and storage.train_stop_data[train_stop.unit_number].enableProgrammableName then
                 storageHelper.add_programmable_train_stop(train_stop)
             end
         end
