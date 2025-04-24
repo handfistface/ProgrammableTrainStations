@@ -13,12 +13,15 @@
 -- * Copy/paste probably doesn't copy the settings
 -- * Add storage for programmable stations & their last received signals, tie this into the on_tick() function to compare the last signal to the current signal and speed up update process
 -- * Document storage variables at the top of storageHelper to make it easier to find information on what is stored
+-- * trainHelper.get_surface_index_for_train() could be rewritten to use carriages, or front_stock to prevent more lua allocation
+-- * base has an example changelog, justarandomgeek suggests setting up fmtk vscode extension for changelog validation https://wiki.factorio.com/Tutorial:Mod_changelog_format
 
 utility = require("src.utility")
 signalProcessing = require("src.signalProcessing")
 trainHelper = require("src.trainHelper")
 storageHelper = require("src.storageHelper")
 scheduleHelper = require("src.scheduleHelper")
+guiHelper = require("src.guiHelper")
 
 
 function signal_to_no_signal(train_stop)
@@ -72,9 +75,11 @@ function signals_found_for_train_stop(signals, train_stop)
     storageHelper.restore_stations_for_train_stop(new_station_name, train_stop.surface.index)
 end
 
+
 function on_tick()
     -- utility.wipe_backup_train_schedule()
-    local stops = trainHelper.get_all_train_stops()
+    -- local stops = trainHelper.get_all_train_stops()
+    local stops = storageHelper.get_all_programmable_train_stops()
 
     for _, train_stop in pairs(stops) do
         if train_stop and train_stop.valid then
@@ -100,14 +105,9 @@ script.on_nth_tick(60, on_tick)
 -- If you add or remove a variable in storage,this needs incremented
 script.on_configuration_changed(function(event)
     -- Initialize `storage.train_stop_data` if it doesn't exist
-    if not storage.train_stop_data then
-        storage.train_stop_data = {}
-    end
-    if not storage.backup_train_schedule then
-        storage.backup_train_schedule = {}
-    end
+    storageHelper.init_storage()
 
-    -- Optionally, update existing data if needed
+    -- Optionally, update existing data ieded
     for _, trainStop in pairs(trainHelper.get_all_train_stops()) do
         if trainStop.valid and trainStop.unit_number and not storage.train_stop_data[trainStop.unit_number] then
             -- Add default states if the settings do not exist
@@ -123,79 +123,14 @@ end)
 -- Add a GUI element to the train stop GUI for the programmable name feature
 script.on_event(defines.events.on_gui_opened, function(event)
     if event.entity and event.entity.type == "train-stop" then
-        local player = game.players[event.player_index]
-        local train_stop = event.entity
-
-        if player.gui.relative["programmable_train_stop_settings"] then
-            player.gui.relative["programmable_train_stop_settings"].destroy()
-        end
-
-        -- Add a custom frame to the train stop GUI using relative GUI
-        local settings_frame = player.gui.relative.add {
-            type = "frame",
-            name = "programmable_train_stop_settings",
-            direction = "vertical",
-            caption = "Dynamic Name",
-            anchor = {
-                gui = defines.relative_gui_type.train_stop_gui,
-                position = defines.relative_gui_position.right,
-                target = train_stop
-            }
-        }
-
-        -- Add a checkbox for enabling/disabling programmable name
-        local enableProgrammableName = trainHelper.is_train_stop_programmable(train_stop)
-        settings_frame.add {
-            type = "checkbox",
-            name = "enable_programmable_name_checkbox",
-            caption = "Enable Dynamic Name",
-            state = enableProgrammableName,
-        }
-
-        -- add a radio button to identify pickup or drop off
-        local dropoff_setting = storageHelper.is_dropoff_set(train_stop)
-        settings_frame.add {
-            type = "checkbox",
-            name = "dropoff_station",
-            caption = "Does this station drop items off?",
-            state = dropoff_setting
-        }
+        guiHelper.draw_train_stop_gui(event)
     end
 end)
 
 -- on_event()
 -- Handle checkbox state changes for the programmable_name_checkbox
 script.on_event(defines.events.on_gui_checked_state_changed, function(event)
-    if event.element.name == "enable_programmable_name_checkbox" then
-        local player = game.players[event.player_index]
-        local train_stop = player.opened -- The currently opened train stop
-
-        if train_stop and train_stop.valid and train_stop.type == "train-stop" then
-            -- Update the global data for this train stop
-            if not storage.train_stop_data[train_stop.unit_number] then
-                storage.train_stop_data[train_stop.unit_number] = {}
-            end
-            storage.train_stop_data[train_stop.unit_number].enableProgrammableName = event.element.state
-
-            -- Debug message
-            utility.print_debug("Programmable Name set to: " .. tostring(event.element.state))
-        end
-    end
-    if event.element.name == "dropoff_station" then
-        local player = game.players[event.player_index]
-        local train_stop = player.opened -- The currently opened train stop
-
-        if train_stop and train_stop.valid and train_stop.type == "train-stop" then
-            -- Update the global data for this train stop
-            if not storage.train_stop_data[train_stop.unit_number] then
-                storage.train_stop_data[train_stop.unit_number] = {}
-            end
-            storage.train_stop_data[train_stop.unit_number].dropoff_setting = event.element.state
-
-            -- Debug message
-            utility.print_debug("Drop off station set to: " .. tostring(event.element.state))
-        end
-    end
+    guiHelper.on_gui_checked_state_changed(event)
 end)
 
 -- on_init()
@@ -203,13 +138,7 @@ end)
 -- It initializes the global storage for train stop data
 -- and sets up the initial state for all train stops
 script.on_init(function()
-    if not storage.train_stop_data then
-        storage.train_stop_data = {}
-    end
-    
-    if not storage.backup_train_schedule then
-        storage.backup_train_schedule = {}
-    end
+    storageHelper.init_storage()
 
     local stops = trainHelper.get_all_train_stops()
     for _, trainStop in pairs(stops) do

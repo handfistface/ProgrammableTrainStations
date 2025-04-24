@@ -1,5 +1,31 @@
 storageHelper = {}
 
+function init_programmable_train_stops()
+    -- This will reinitialize the programmable_train_stops table in storage, use it while debugging when that table is wiped out
+    local stops = trainHelper.get_all_train_stops()
+    for _, train_stop in pairs(stops) do
+        if train_stop.valid and train_stop.unit_number and storage.train_stop_data then
+            -- Initialize the storage for each train stop
+            if storage.train_stop_data[train_stop.unit_number].enableProgrammableName then
+                storageHelper.add_programmable_train_stop(train_stop)
+            end
+        end
+    end
+end
+
+function storageHelper.init_storage()
+    if not storage.train_stop_data then
+        storage.train_stop_data = {}
+    end
+    if not storage.backup_train_schedule then
+        storage.backup_train_schedule = {}
+    end
+    if not storage.programmable_train_stops then 
+        storage.programmable_train_stops = {}
+    end
+    init_programmable_train_stops()
+end
+
 function storageHelper.is_dropoff_set(train_stop)
     if not train_stop or not train_stop.valid then
         return false
@@ -135,6 +161,30 @@ function storageHelper.restore_stations_for_train_stop(train_stop_name_to_restor
 
     -- Remove the backup entries since they have been restored
     storageHelper.remove_stations_for_surface(train_stop_name_to_restore, surface_index)
+end
+
+function storageHelper.get_all_programmable_train_stops()
+    return storage.programmable_train_stops
+end
+
+function storageHelper.add_programmable_train_stop(train_stop)
+    if not train_stop or not train_stop.valid then
+        return
+    end
+
+    if not storage.programmable_train_stops[train_stop.unit_number] then
+        storage.programmable_train_stops[train_stop.unit_number] = train_stop
+    end
+end
+
+function storageHelper.remove_programmable_train_stop(train_stop)
+    if not train_stop or not train_stop.valid then
+        return
+    end
+
+    if storage.programmable_train_stops[train_stop.unit_number] then
+        storage.programmable_train_stops[train_stop.unit_number] = nil
+    end
 end
 
 return storageHelper
