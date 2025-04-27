@@ -35,7 +35,9 @@ function signal_to_no_signal(train_stop)
     for _, station in ipairs(all_stations_with_name) do
         utility.print_debug("Signal to no signal - STATION " .. station.backer_name .. " on surface " .. game.surfaces[station.surface_index].name)
     end
-
+    
+    storageHelper.backup_trains_for_station(train_stop)
+    
     if #all_stations_with_name > 1 then
         utility.print_debug("Signal to no signal - Multiple stations with the same name found. " .. train_stop.backer_name .. " on surface " .. game.surfaces[train_stop.surface_index].name)
         train_stop.backer_name = holdover_name
@@ -43,7 +45,6 @@ function signal_to_no_signal(train_stop)
     end
     
     utility.print_debug("Signal to no signal - Backing up trains & schedules for train stop: " .. train_stop.backer_name .. " on surface " .. game.surfaces[train_stop.surface_index].name)
-    storageHelper.backup_trains_for_station(train_stop)
     scheduleHelper.remove_station_from_schedule(train_stop, train_stop.backer_name)
     train_stop.backer_name = holdover_name
 end

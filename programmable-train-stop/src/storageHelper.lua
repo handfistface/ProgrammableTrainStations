@@ -116,6 +116,20 @@ function storageHelper.get_stations_for_surface(train_stop_name, surface_index)
     return filtered_train_stops
 end
 
+function storageHelper.does_schedule_contain_record(train_schedule_records, record_to_find)
+    if not train_schedule_records then
+        return false
+    end
+
+    for _, record in ipairs(train_schedule_records) do
+        if utility.deep_equals(record, record_to_find) then
+            return true
+        end
+    end
+
+    return false
+end
+
 function storageHelper.remove_stations_for_surface(train_stop_name, surface_index)
     local train_stop_backups = storage.backup_train_schedule[train_stop_name]
     if not train_stop_backups or #train_stop_backups == 0 then
@@ -152,7 +166,9 @@ function storageHelper.restore_stations_for_train_stop(train_stop_name_to_restor
             for _, record in ipairs(train.schedule.records) do
                 table.insert(new_records, record)
             end
-            table.insert(new_records, record_to_restore)
+            if not storageHelper.does_schedule_contain_record(new_records, record_to_restore) then
+                table.insert(new_records, record_to_restore)
+            end
             scheduleHelper.set_train_schedule(train, new_records)
 
             utility.print_debug("Restoring station: " .. train_stop_name_to_restore .. " for train: " .. train.id)
