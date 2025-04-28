@@ -29,7 +29,7 @@ end
 function trainHelper.get_train_stops(stop_name, surface_index)
     local matching_stops = {}
 
-    surface = game.surfaces[surface_index]
+    local surface = game.surfaces[surface_index]
     local train_stops = surface.find_entities_filtered { type = "train-stop" }
 
     -- Check each train stop's backer_name

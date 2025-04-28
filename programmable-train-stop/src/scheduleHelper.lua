@@ -2,21 +2,25 @@ scheduleHelper = {}
 
 function scheduleHelper.set_train_schedule(train, new_records)
     local schedule = train.schedule
-    current_station_index = schedule.current
-    if schedule.current > #new_records then
+    local current_station_index = 1
+    if schedule and schedule.current then
+        -- Preserve the current schedule index if it exists
+        current_station_index = schedule.current
+    end
+    if current_station_index > #new_records then
         -- If the schedule is longer than the new records, set the current index to the l               
         current_station_index = #new_records
     end
-    if #new_records == 0 then
-        current_station_index = 1
-    end
 
-    interrupt_cache = train.get_schedule().get_interrupts()
-    -- Assign the modified schedule back to the train
-    train.schedule = {
-        current = current_station_index, -- Preserve the current schedule index
-        records = new_records, -- Use the modified records
-    }
+    local interrupt_cache = train.get_schedule().get_interrupts()
+    if #new_records == 0 then
+        train.schedule = nil
+    else
+        train.schedule = {
+            current = current_station_index, -- Preserve the current schedule index
+            records = new_records, -- Use the modified records
+        }
+    end
     train.get_schedule().set_interrupts(interrupt_cache)
 end
 

@@ -88,7 +88,7 @@ function storageHelper.backup_trains_for_station(train_stop)
             if not storageHelper.does_backup_contain_train(train, train_stop.backer_name) then
                 -- The schedule does not exist in the backup, so add it
                 utility.print_debug("backup_trains_for_station() - Adding backup schedule for train: " .. train.id .. " " .. train_stop.backer_name)
-                record_to_backup = trainHelper.get_record_from_schedule_by_name(train, train_stop.backer_name)
+                local record_to_backup = trainHelper.get_record_from_schedule_by_name(train, train_stop.backer_name)
                 table.insert(storage.backup_train_schedule[train_stop.backer_name],
                 {
                     train = train,
@@ -163,8 +163,10 @@ function storageHelper.restore_stations_for_train_stop(train_stop_name_to_restor
         if train and train.valid and record_to_restore then
             -- Add the record back to the train's schedule
             local new_records = {}
-            for _, record in ipairs(train.schedule.records) do
-                table.insert(new_records, record)
+            if train.schedule and train.schedule.records then
+                for _, record in ipairs(train.schedule.records) do
+                    table.insert(new_records, record)
+                end
             end
             if not storageHelper.does_schedule_contain_record(new_records, record_to_restore) then
                 table.insert(new_records, record_to_restore)

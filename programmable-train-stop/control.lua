@@ -24,14 +24,14 @@ scheduleHelper = require("src.scheduleHelper")
 guiHelper = require("src.guiHelper")
 
 
-function signal_to_no_signal(train_stop)
+local function signal_to_no_signal(train_stop)
     -- Handle case where no signals were found & the station is set to programmable
-    holdover_name = "No Signals"
+    local holdover_name = "No Signals"
     if train_stop.backer_name == holdover_name then
         return
     end
 
-    all_stations_with_name = trainHelper.get_train_stops(train_stop.backer_name, train_stop.surface_index)
+    local all_stations_with_name = trainHelper.get_train_stops(train_stop.backer_name, train_stop.surface_index)
     for _, station in ipairs(all_stations_with_name) do
         utility.print_debug("Signal to no signal - STATION " .. station.backer_name .. " on surface " .. game.surfaces[station.surface_index].name)
     end
@@ -49,13 +49,20 @@ function signal_to_no_signal(train_stop)
     train_stop.backer_name = holdover_name
 end
 
-function signals_found_for_train_stop(signals, train_stop)
+local function signals_found_for_train_stop(signals, train_stop)
     local signal = signals[1]
     local new_station_name = signalProcessing.create_new_name_from_signal(signal, train_stop)
 
     if not signal or not signal.signal or not signal.signal.signal or not signal.signal.signal.name then
         --invalid signal state
         return
+    end
+
+    local does_not_contain_arrow_in_name = string.find(train_stop.backer_name, "%[virtual%-signal=up%-arrow%]") == nil 
+        and string.find(train_stop.backer_name, "%[virtual%-signal=down%-arrow%]") == nil
+    if does_not_contain_arrow_in_name and train_stop.backer_name ~= "No Signals" then
+        game.print("Train stop '" .. train_stop.backer_name .. "' does not contain [virtual-signal=up-arrow] or [virtual-signal=down-arrow]. Setting backer_name to " .. new_station_name)
+        train_stop.backer_name = new_station_name
     end
 
     if train_stop.backer_name == new_station_name then
@@ -77,7 +84,7 @@ function signals_found_for_train_stop(signals, train_stop)
 end
 
 
-function on_tick()
+local function on_tick()
     -- utility.wipe_backup_train_schedule()
     -- local stops = trainHelper.get_all_train_stops()
     local stops = storageHelper.get_all_programmable_train_stops()
