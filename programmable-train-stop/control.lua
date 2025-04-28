@@ -61,7 +61,7 @@ local function signals_found_for_train_stop(signals, train_stop)
     local does_not_contain_arrow_in_name = string.find(train_stop.backer_name, "%[virtual%-signal=up%-arrow%]") == nil 
         and string.find(train_stop.backer_name, "%[virtual%-signal=down%-arrow%]") == nil
     if does_not_contain_arrow_in_name and train_stop.backer_name ~= "No Signals" then
-        game.print("Train stop '" .. train_stop.backer_name .. "' does not contain [virtual-signal=up-arrow] or [virtual-signal=down-arrow]. Setting backer_name to " .. new_station_name)
+        utility.print_debug("Train stop '" .. train_stop.backer_name .. "' does not contain [virtual-signal=up-arrow] or [virtual-signal=down-arrow]. Setting backer_name to " .. new_station_name)
         train_stop.backer_name = new_station_name
     end
 
