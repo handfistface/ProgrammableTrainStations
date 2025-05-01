@@ -15,6 +15,7 @@
 -- * Document storage variables at the top of storageHelper to make it easier to find information on what is stored
 -- * trainHelper.get_surface_index_for_train() could be rewritten to use carriages, or front_stock to prevent more lua allocation
 -- * base has an example changelog, justarandomgeek suggests setting up fmtk vscode extension for changelog validation https://wiki.factorio.com/Tutorial:Mod_changelog_format
+-- * PICKUP: On blueprint copy, I think I'm missing adding the train stop settings to the collection of train stops?
 
 utility = require("src.utility")
 signalProcessing = require("src.signalProcessing")
@@ -155,3 +156,13 @@ script.on_init(function()
         end
     end
 end)
+
+function trainHelper.find_train_stop_by_position(position, surface)
+    local train_stops = surface.find_entities_filtered { type = "train-stop", position = position }
+    if #train_stops > 0 then
+        return train_stops[1] -- Return the first matching train stop
+    end
+    return nil
+end
+
+require("src.blueprinting")

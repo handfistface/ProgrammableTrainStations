@@ -1,0 +1,64 @@
+---------------------------------------------------------------------------------------------------
+Version: 0.2.0
+Date: 2025-04-30
+  Changes:
+    - Added blueprint support for train stop settings.
+    - Added shift right click copy settings support for train stop settings.
+    - Added copy/paste support for train stop settings.
+---------------------------------------------------------------------------------------------------
+Version: 0.1.13
+Date: 2025-04-27
+  Changes:
+    - Removed debug print
+---------------------------------------------------------------------------------------------------
+Version: 0.1.12
+Date: 2025-04-27
+  Changes:
+    - Changed numerous references from global variables & functions to local. 
+    - Caught an edge case where a station rename triggers and doesn't have the arrow indicating pickup/dropoff. Caught an edge case where a station is backed up for a train, but there is only one station in the schedule, leading to a 0 being assigned to current.
+---------------------------------------------------------------------------------------------------
+Version: 0.1.11
+Date: 2025-04-27
+  Changes:
+    - Fix for multiple stations that have the same name, but not dynamic train station names turned on.
+---------------------------------------------------------------------------------------------------
+Version: 0.1.10
+Date: 2025-04-23
+  Changes:
+    - Fixed a crash while accessing train_stop_data
+---------------------------------------------------------------------------------------------------
+Version: 0.1.9
+Date: 2025-04-23
+  Changes:
+    - Broke gui code out into its own helper. 
+    - Moved the initialization code for storage into a storageHelper function. 
+    - Added caching for active programmable train stops and am now driving the on_tick() function on that data to speed up the code drastically.
+---------------------------------------------------------------------------------------------------
+Version: 0.1.8
+Date: 2025-04-23
+  Changes:
+    - Debug mode turned off.
+---------------------------------------------------------------------------------------------------
+Version: 0.1.7
+Date: 2025-04-22
+  Changes:
+    - Added support for multiple planets
+---------------------------------------------------------------------------------------------------
+Version: 0.1.6
+Date: 2025-04-20
+  Changes:
+    - Implement train schedule management and signal processing utilities
+    - Refactoring:
+    - Added scheduleHelper module for managing train schedules, including setting new schedules and removing stations from schedules.
+    - Introduced signalProcessing module to handle signal types and retrieve signals from train stops.
+    - Created storageHelper module for managing train stop data, including backup and restoration of train schedules.
+    - Developed trainHelper module to facilitate operations related to train stops, including filtering and retrieving train stop records.
+    - Implemented utility functions for debugging and managing backup train schedules.
+    - Bug Fixes:
+    - Resolved issue with on_tick() not being correctly registered on startup.
+---------------------------------------------------------------------------------------------------
+Version: 0.1.5
+Date: 2025-04-19
+  Changes:
+    - Initial release of the Programmable Train Stops mod.
+    - Added basic functionality for programmable train stop names.
